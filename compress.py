@@ -8,8 +8,11 @@ import time
 import datetime
 
 #### Set up logging. ####
-logging.basicConfig(filename="comp-%s.log" % (datetime.datetime.now()), filemode="a", format="%(asctime)s - %(message)s", level=logging.DEBUG)
+timestring = str(datetime.datetime.now()).replace(" ", "-").replace(":", "-")
+logging.basicConfig(filename="comp-%s.log" % timestring, filemode="a", format="%(asctime)s - %(message)s", level=logging.DEBUG)
 nr_errors = 0
+raw_size_sum = 0
+comp_size_sum = 0
 
 #### Read command-line arguments. ####
 if len(sys.argv) > 1:
@@ -42,7 +45,9 @@ def compress(file_index):
     
     raw_size = os.path.getsize(raw_filepath)
     comp_size = os.path.getsize(comp_filepath)
-    logging.info("Finished file %s oldsize=%.2fGB newsize=%.2fGB" % (raw_filepath, raw_size*1e-9, comp_size*1e-9))
+    raw_size_sum += raw_size
+    comp_size_sum += comp_size
+    logging.info("Finished file %s (%d/%d) oldsize=%.2fGB newsize=%.2fGB ratio=%.2f" % (raw_filepath, file_index, len(filenames), raw_size*1e-9, comp_size*1e-9, raw_size/comp_size))
 
 
 #### Define validation function. ####
@@ -66,7 +71,7 @@ t0 = time.time()
 with Pool(nr_threads) as p:
     p.map(compress, range(len(filenames)))
 t1 = time.time()
-logging.info("Finished compression job.")
+logging.info("Finished compression job. Old totsize=%.2fGB, new totsize=.2fGB, ratio=%.2f" %(raw_size_sum, comp_size_sum, raw_size_sum/comp_size_sum))
 logging.info("Total execution time %.2f seconds." % (t1-t0))
 
 
