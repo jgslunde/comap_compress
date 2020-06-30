@@ -38,10 +38,7 @@ timestring = str(datetime.datetime.now()).replace(" ", "-").replace(":", "-")
 logging.basicConfig(filename="comp-%s.log" % timestring, filemode="a", format="%(asctime)s - %(message)s", level=logging.DEBUG)
 logging.info("Initializing compression over paths %s", paths)
 
-print(paths)
 for path in paths:
-    print(path)
-
     nr_errors = 0
 
     #### Parse through directory to find filenames matching pattern. ####
