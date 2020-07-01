@@ -39,14 +39,23 @@ logging.basicConfig(filename="comp-%s.log" % timestring, filemode="a", format="%
 logging.info("Initializing compression over paths %s", paths)
 
 for path in paths:
+    logging.info("Starting compression job.")
     nr_errors = 0
 
     #### Parse through directory to find filenames matching pattern. ####
     filenames = []
+    nonzerofiles = 0
+    zerofiles = 0
+    logging.info("Finding files matching pattern.")
     for file in listdir(path):
         if isfile(join(path, file)): # Check if file. Could be dir.
             if file[:6] == "comap-" and file[-4:] == ".hd5": # Do only files starting with comap- and ending with .hd5
-                filenames.append(file)
+                if os.path.getsize(path + file) > 0:
+                    filenames.append(file)
+                    nonzerofiles += 1
+                else:
+                    zerofiles += 1
+    logging.info("Found %d non-zero files, and %d 0-byte files." % (nonzerofiles, zerofiles))
 
 
     ### Define compression function. ####
@@ -57,8 +66,10 @@ for path in paths:
         raw_filepath = path + filename  # Filepath of old uncompressed file.
         comp_filepath = path + "comp_" + filename  # Add "comp_" to compressed filename and write it to the same folder.
         command = "h5repack -f /spectrometer/tod:GZIP=1 %s %s" % (raw_filepath, comp_filepath)
-        os.system(command)
+        exitstatus = os.system(command)
         t01 = time.time()
+        if exitstatus != 0:
+            logging.error("h5repack ON FILE %s FINISHED WITH NON-ZERO EXIT STATUS %d." % (comp_filepath, exitstatus))
         
         raw_size = os.path.getsize(raw_filepath)
         comp_size = os.path.getsize(comp_filepath)
@@ -80,7 +91,6 @@ for path in paths:
 
 
     #### Start execution over multiple threads. ####
-    logging.info("Starting compression job.")
     logging.info("Compressing %d files with %d threads in dir %s." % (len(filenames), nr_threads, path))
     t0 = time.time()
     with Pool(nr_threads) as p:
